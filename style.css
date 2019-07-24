@@ -1,18 +1,5 @@
 body {
     width: 300px;
-    border: 20px black;
-    padding: 50px;
-    margin: 20px;
-    background-color: coral
+    padding: 70px;
 
 }
-
-h1 {
-
-}
-
-a:link {
-  color: blue }
-
-a:visited {
-  color: purple }
