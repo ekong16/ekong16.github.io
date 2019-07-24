@@ -1,14 +1,17 @@
 body {
-  padding-left: 11em;
-  font-family: Georgia, "Times New Roman",
-        Times, serif;
-  color: black;
-  background-color: white
-}
+    width: 300px;
+    border: 2px black;
+    padding: 50px;
+    margin: 20px;
 
+}
+width: 300px;
+  border: 15px solid green;
+  padding: 50px;
+  margin: 20px;
 h1 {
-  font-family: Helvetica, Geneva, Arial,
-        SunSans-Regular, sans-serif }
+
+}
 
 a:link {
   color: blue }
