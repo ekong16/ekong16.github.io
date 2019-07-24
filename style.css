@@ -1,7 +1,8 @@
 body {
     width: 400px;
-    height: 200px
-    padding: 70px;
-    margin: 70px
+    margin: 200px;
+}
 
+p {
+    margin: 50px;
 }
