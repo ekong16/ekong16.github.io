@@ -1,36 +1,52 @@
 <!DOCTYPE html>
-<html>
- <head>
-   <meta charset="UTF-8">
-   <link rel="stylesheet" href="style.css">
-   <title>Eric Kong's Website</title>
+<html lang="en">
 
- </head>
- <body>
-     <div class="flex-container">
-         <div>
-             <h1>Eric Kong</h1>
-             <p> I am a student at Brown University, and I like computers and math.</p>
-             <p> I am looking for full time software engineering jobs starting in August 2020.</p>
-             <p> My email is eric_kong(at)brown[dot]edu. Please reach out to me
-                 if you wish to view my resume and/or academic transcript.</p>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Name — Graphics Simulations</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
 
-             <div>
-                 While you're here, enjoy this
-                 <a href="http://ekong16.github.io/JqueryTest/">
-                     fun game</a>
-                 I wrote in high school. I call it "Potato Jump".
-             </div>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <h1 class="brand">Your Name</h1>
+            <nav>
+                <a href="index.html">Home</a>
+                <a href="simulations/">Simulations</a>
+                <a href="blog.html">Blog</a> <!-- future -->
+                <a href="about.html">About</a> <!-- future -->
+            </nav>
+        </div>
+    </header>
 
-             <p>Thank you for visiting this site.</p>
-         </div>
+    <main class="container">
+        <section class="hero">
+            <h2>Hi, I'm Your Name</h2>
+            <p>I build <strong>graphics simulations</strong> and write about technology. More sections for finance &
+                ideas will come later.</p>
+            <a class="button" href="simulations/">View simulations →</a>
+        </section>
 
-         <div>
-             <canvas id="myCanvas" width="200" height="100" style="border:1px solid #000000;"> </canvas>
-         </div>
-     </div>
- </body>
+        <section class="featured">
+            <h2>Featured</h2>
+            <div class="cards">
+                <div class="card">
+                    <h3>Rotating Cube (Three.js)</h3>
+                    <p>A tiny starter for interactive 3D in the browser.</p>
+                </div>
+                <div class="card">
+                    <h3>Blog</h3>
+                    <p>Notes on simulations, tooling, and learning.</p>
+                </div>
+            </div>
+        </section>
+    </main>
 
-
+    <footer class="site-footer">
+        <p>© 2025 Your Name</p>
+    </footer>
+</body>
 
 </html>

@@ -1,0 +1,65 @@
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background: #111;
+    color: #eee;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    padding: 1rem;
+}
+
+.site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #222;
+}
+
+.site-header nav a {
+    margin-left: 1rem;
+    color: #eee;
+    text-decoration: none;
+}
+
+.hero {
+    padding: 2rem;
+    background: #222;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.cards {
+    display: flex;
+    gap: 1rem;
+}
+
+.card {
+    background: #222;
+    padding: 1rem;
+    border-radius: 8px;
+    flex: 1;
+}
+
+.button {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #444;
+    color: #eee;
+    text-decoration: none;
+    border-radius: 6px;
+}
+
+.button:hover {
+    background: #555;
+}
+
+.site-footer {
+    text-align: center;
+    padding: 1rem;
+    border-top: 1px solid #333;
+    margin-top: 2rem;
+}
