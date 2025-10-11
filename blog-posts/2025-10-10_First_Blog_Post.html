@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My First Blog Post — Your Name</title>
-    <link rel="stylesheet" href="../style.css"> <!-- note: relative path -->
+    <link rel="stylesheet" href="../assets/css/style.css"> <!-- note: relative path -->
 </head>
 
 <body>
@@ -20,30 +20,110 @@
 
     <main class="container">
         <article class="blog-post">
-            <h2>My First Blog Post</h2>
+            <h2>My First Blog Post -- Review of Past Projects</h2>
             <p><em>October 10, 2025</em></p>
 
-            <p>Welcome to my first blog post! In this post, I’m sharing some notes on my journey exploring graphics
-                simulations, coding experiments, and interesting ideas from my work.</p>
+            <p>
+                Welcome to my first blog post!
+                In this post, I will simply review some topical past projects of mine.
+                The goal is to reflect on past work before starting anything new.
 
-            <p>Recently, I built a small 3D demo using Three.js to learn how WebGL renders objects in real time. It
-                helped me understand meshes, materials, lighting, and animation loops in a browser.</p>
+                We review 3 projects: a web based 2D side-scroller game, an implementation of CycleGAN,
+                and a cornell box graphics simulation.
+            </p>
 
-            <p>Some topics I plan to cover in future posts:</p>
-            <ul>
-                <li>Particle-based fluid simulations</li>
-                <li>Interactive 3D visualizations</li>
-                <li>Insights from my programming experiments</li>
-            </ul>
+            <h3> Potato Jump -- Web Based 2D Side Scroller</h3>
+            <p>
+                Proceeding in chronological order, in high school (around 2015-2016) I created a 2D side-scroller game
+                which I called
+                "Potato Jump!".
+                It is a Jquery based web game that works well on desktop as well as mobile.
+                I fondly recall my sister creating the graphics for me (yes, she designed the potato!). <br> <br>
 
-            <p>Stay tuned for more posts as I continue experimenting and documenting my work.</p>
+                To this day, it still runs well, and you can play with it at this
+                <a target="_blank" href="https://ekong16.github.io/JqueryTest/">link</a>. <br> <br>
+
+                I believe this was my first repo on my github. The primary branch is "gh-pages".
+                <a target="_blank" href="https://github.com/ekong16/JqueryTest">Repo Link</a>. <br> <br>
+
+                Screenshot of gameplay:
+                <img src="../assets/images/2025-10-10/potato_jump_game.png" alt="Potato Jump Game" class="post-image">
+            </p>
+
+            <h3>
+                CycleGAN Implementation
+            </h3>
+            <p>
+                In my undergraduate years (around junior or senior year), I took a computer vision course.
+                For the final group project, a group of four of us implemented CycleGAN, a deep learning
+                generative adversarial network "GAN" used for image to image translation. We were able to
+                transform images of zebras into images of horses. <br> <br>
+
+                In this project, I was responsible for implementing the primary training loop in tensor flow.
+                I remember I had to implement a custom training loop in a "cycle" using something called a
+                "gradient tape". I can't seem to find the source code for this project... <br> <br>
+
+                Here is the brief written by some of my teammates.
+                <a target="_blank"
+                    href="https://cs.brown.edu/media/filer_public/fc/04/fc0411ca-f34e-49db-8a5b-30350be0566e/niuchen-en.pdf">
+                    Link to abstract </a>. <br> <br>
+
+                Some actual transformations from our implementation:
+                <img src="../assets/images/2025-10-10/cyclegan_horse.png" alt="CycleGAN Horse" class="post-image">
+            </p>
+
+            <h3>
+                Cornell Box Simulation with Shadows and Physics
+            </h3>
+            <p>
+                In my senior year of undergraduate studies, we were required to take a "capstone course". I elected
+                to take computer graphics with the famous Professor Andy Van Dam. This entailed taking an extra
+                half-credit lab
+                in addition to the regular computer graphics course. It was a phenomenal experience and one of the most
+                intellectually stimulating and challenging courses I took. The extra half-credit lab made the course
+                significantly more challenging -- I remember only 4 students (including myself) elected to take it! <br>
+                <br>
+
+                Throughout the course, we implemented a brush (like in photoshop), shapes rendering, image filtering,
+                scene
+                rendering, and ray tracing. Many of these were tied together in the final project, which I recorded at
+                this
+                <a target="_blank" href="https://www.youtube.com/watch?v=FHWymkbtuRk">
+                    Youtube link</a>. <br> <br>
+
+                In the above video, we have balls bouncing around a cornell box.
+                It was a partnered project, and
+                we mostly used my implementations for the various components.
+                My partner created the physics of the bouncing balls. <br> <br>
+
+                I recall getting the shadows to work took tremendous effort, involving intensive GPU level programming,
+                which I believe was done in GLSL. <br> <br>
+
+                For more information, see this <a target="_blank"
+                    href="https://cs.brown.edu/media/filer_public/d1/b5/d1b5d874-2341-4e52-bb1f-507bc3487338/kongzagorski.pdf">abstract
+                    brief</a> written by me.<br> <br>
+
+                Screenshot of video simulation:
+                <img src="../assets/images/2025-10-10/graphics_simulation.png" alt="Graphics Simulation"
+                    class="post-image">
+            </p>
+
+            <h3>
+                Conclusion
+            </h3>
+            <p>
+                I enjoyed writing this article reviewing some of my past project experiences :) ! I felt a little bit
+                nostalgic too.
+                It also helped me get the scaffolding of this website set up -- so now I feel ready to expand. Onwards
+                and upwards!
+            </p>
 
             <a class="button" href="../blog.html">← Back to Blog</a>
         </article>
     </main>
 
     <footer class="site-footer">
-        <p>© 2025 Your Name</p>
+        <p>© 2025 Eric Kong</p>
     </footer>
 </body>
 
