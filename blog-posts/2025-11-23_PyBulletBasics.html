@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyBullet Basics: R2D2 Robot Movement and Object Picking</title>
+    <link rel="stylesheet" href="../assets/css/style.css"> <!-- note: relative path -->
+</head>
+
+<body>
+    <header class="site-header">
+        <h1>Eric Kong</h1>
+        <nav>
+            <a href="../index.html">Home</a>
+            <a href="../blog.html">Blog</a>
+            <a href="../projects.html">Projects</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <article class="blog-post">
+            <h2>PyBullet Basics: R2D2 Robot Movement and Object Picking</h2>
+            <p><em>November 23, 2025</em></p>
+
+            <p>
+                This is my first foray into the world of robotics programming in physics simulations.
+                There's lots to learn -- for example, URDF files and robot specifications, as well as
+                specifics
+                of interacting with and manipulating robots in PyBullet.
+                The ultimate result
+                is a basic python program that runs a PyBullet simulation where the user can
+                use keyboard commands to move the robot in all directions on the plane
+                and manipulate the gripper pole
+                and claw to pick and place objects. <br> <br>
+
+                The biggest challenge is adapting to realistic physics simulation.
+                For example, previously, in graphics or simple game development, to move an object
+                one can simply 'teleport' it to the desired location and continuously change its position
+                to simulate movement and even acceleration. But in a physics simulation, 'teleporting'
+                the body bypasses all the collision and physics simulation logic.
+                At first, I tried this 'teleportation' approach but quickly realized the robot was
+                phasing through objects. So forces and velocities need to be properly applied to
+                the appropriate components. <br> <br>
+
+                It took some time to understand how these 'components' are specified.
+                In PyBullet (and URDF in general), a robot comprises 'joints' and 'links'.
+                The joints define the tree strucuture of the robot's components.
+                The links are
+                the actual visible and physics elements of the robot
+                and are connected by joints. So joints are edges and links are nodes. <br> <br>
+
+                Each joint is specified by an x-y-z coordinate (and I believe optionally an orientation).
+                This is the location of the joint in terms of its parent's 'frame'.
+                I understand the word 'frame' to be the robotics term for
+                'reference frame' or 'reference coordinate system'. The joint does not really 'exist'
+                and cannot be seen, but it is the connector of the parent 'link' and child 'link'.
+                The joint's location (and orientation) defines the 'frame' or coordinate system for its
+                children (the single immediate child link and all joints stemming from it) --
+                it defines a new 'origin'. <br> <br>
+
+                The links specify an inertial frame, visual frame, and collision frame, all based off the
+                the frame defined by the joint to its parent. The inertial frame roughly specifies the center of mass,
+                the visual frame what you see, and the collision frame the collision geometry the physics engine
+                detects. <br> </br>
+
+                There is a base link that serves as the root of the tree. Its origin is the world origin. <br> <br>
+
+                Now, in PyBullet specifically, the joints and links are indexed. Each joint and its immediate child link
+                have the same index. The base is indexed by -1. In the program, I print information regarding each joint
+                as well as
+                each link. This is useful for determining the positions of components, which links I can manipulate, the
+                extent of their range of
+                motion,
+                and their type of movement (via the 'joint type').<br> <br>
+
+                Joint Info (click to open full-size image in new tab):
+                <a href="../assets/images/2025-11-23/r2d2_joint_info.png" target="_blank">
+                    <img src="../assets/images/2025-11-23/r2d2_joint_info.png" alt="Joint Info" class="post-image">
+                </a>
+
+                Link State Info (click to open full-size image in new tab):
+                <a href="../assets/images/2025-11-23/r2d2_link_states.png" target="_blank">
+                    <img src="../assets/images/2025-11-23/r2d2_link_states.png" alt="Joint Info" class="post-image">
+                </a>
+
+                <br> <br>
+
+                In addition, I also obtain the 'dynamics' information for each link. This tells me among other things,
+                the mass and friction of the link. <br> <br>
+
+                Dynamics Info (click to open full-size image in new tab):
+                <a href="../assets/images/2025-11-23/r2d2_dynamics_info.png" target="_blank">
+                    <img src="../assets/images/2025-11-23/r2d2_dynamics_info.png" alt="Joint Info" class="post-image">
+                </a>
+
+                <br> <br>
+
+                Putting it all together, I created a video of the program demonstrating robot movement and object pick
+                and place. Due to the default frame rate of the physics simulator, the movement is a bit slow --
+                something akin
+                to 2001 Space Odyssey (but maybe even slower). <br> <br>
+
+                Video Demonstration (Youtube):
+                <iframe style="width: 100%; aspect-ratio: 16/9; border: 0;"
+                    src="https://www.youtube.com/embed/7a3qsaGsWbg?si=8yjqb1L65-6DxxGo" title="YouTube video player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+                <br> <br>
+
+                I think in the future, if I want to get serious about graphics and robotics projects, I'm gonna need
+                to upgrade my computer hardware. I think I would like to build my own computer!
+            </p>
+
+
+
+
+            <a class="button" href="../blog.html">← Back to Blog</a>
+        </article>
+    </main>
+
+    <footer class="site-footer">
+        <p>© 2025 Eric Kong</p>
+    </footer>
+</body>
+
+</html>
