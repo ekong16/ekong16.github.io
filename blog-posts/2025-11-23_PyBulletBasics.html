@@ -37,8 +37,8 @@
                 The biggest challenge is adapting to realistic physics simulation.
                 For example, previously, in graphics or simple game development, to move an object
                 one can simply 'teleport' it to the desired location and continuously change its position
-                to simulate movement and even acceleration. But in a physics simulation, 'teleporting'
-                the body bypasses all the collision and physics simulation logic.
+                to simulate movement and acceleration. But in a physics simulation, 'teleporting'
+                the body bypasses all the logic of the physics engine.
                 At first, I tried this 'teleportation' approach but quickly realized the robot was
                 phasing through objects. So forces and velocities need to be properly applied to
                 the appropriate components. <br> <br>
@@ -59,8 +59,8 @@
                 children (the single immediate child link and all joints stemming from it) --
                 it defines a new 'origin'. <br> <br>
 
-                The links specify an inertial frame, visual frame, and collision frame, all based off the
-                the frame defined by the joint to its parent. The inertial frame roughly specifies the center of mass,
+                Each link specifies an inertial frame, visual frame, and collision frame, all within the reference
+                frame defined by the joint to its parent link. The inertial frame roughly specifies the center of mass,
                 the visual frame what you see, and the collision frame the collision geometry the physics engine
                 detects. <br> </br>
 
@@ -97,7 +97,9 @@
                 <br> <br>
 
                 Putting it all together, I created a video of the program demonstrating robot movement and object pick
-                and place. Due to the default frame rate of the physics simulator, the movement is a bit slow --
+                and place. I used time.sleep() to pause after each step of the simulation to force the wall time to
+                match the simulation time.
+                The result is that movement is a bit slow --
                 something akin
                 to 2001 Space Odyssey (but maybe even slower). <br> <br>
 
