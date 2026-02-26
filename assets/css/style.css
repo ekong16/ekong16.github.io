@@ -130,7 +130,11 @@ p,
 h3,
 ul {
     text-align: left;
+
     /* Ensure paragraphs, headings, lists are left-aligned */
+
+    line-height: 1.28;
+
 }
 
 .post-image {

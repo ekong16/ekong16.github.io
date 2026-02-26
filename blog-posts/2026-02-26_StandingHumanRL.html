@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reinforcement Learning:
+        Training a Humanoid to Stand in PyBullet with Proximal Policy Optimization
+    </title>
+    <link rel="stylesheet" href="../assets/css/style.css"> <!-- note: relative path -->
+</head>
+
+<body>
+    <header class="site-header">
+        <h1>Eric Kong</h1>
+        <nav>
+            <a href="../index.html">Home</a>
+            <a href="../blog.html">Blog</a>
+            <a href="../projects.html">Projects</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <article class="blog-post">
+            <h2>Reinforcement Learning:
+                Training a Humanoid to Stand in PyBullet with Proximal Policy Optimization</h2>
+            <p><em>February 26, 2026</em></p>
+
+            <p>
+                After getting the hang of the PyBullet environment, I attempted the challenging task of training a
+                humanoid robot to stand using reinforcement learning techniques.
+                I shall document my journey in this blog post, and structure it similar to a research paper
+                for organization purposes. I think I will focus on my "final" result -- it might take too long to
+                document
+                everything I tried! I tuned all kinds of parameteres and configurations over the past several months --
+                Reinforcement learning is for sure a tedious and challening beast!
+
+                I am utterly fascinated by this whole process of breathing life into a robot -- to see what it is able
+                to learn
+                through (almost) random movements!
+
+
+            </p>
+
+            <h3>Abstract</h3>
+            <p>
+                I used Proximal Policy Optimization to train a 28-degree-of-freedom humanoid to stand.
+                I used direct torque application to the joints, so the actions outputted by the policy represent
+                torques. Typically (I believe), these tasks are trained with position-control, and training in
+                torque-space
+                significantly
+                increases the difficulty of the problem.
+                Link masses and joint dampening were modified from the default settings
+                to facillitate balance and control.
+                Finding a working reward function was a tedious and time consuming exrcise, and will be detailed in the
+                methodology section.
+                In the "final" result, I trained for 10 million steps on my local MacBook (6.5 hours) to achieve stable
+                and improving learning
+                metrics.
+                The humanoid is able to force itself into an upright standing position, but fails to maintain the pose
+                for long.
+                Although it is not a perfectly balanced stand, and the movement is still a bit more chaotic than I would
+                hope,
+                I am happy with the result considering the difficulty of the problem and the short number steps trained.
+                A more refined stand would require significantly more effort to fine-tune parameters and configurations
+                as well
+                as significantly longer training.
+            </p>
+
+
+
+
+            <a class="button" href="../blog.html">← Back to Blog</a>
+        </article>
+    </main>
+
+    <footer class="site-footer">
+        <p>© 2025 Eric Kong</p>
+    </footer>
+</body>
+
+</html>
