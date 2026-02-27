@@ -71,15 +71,14 @@
                 as significantly longer training.
             </p>
 
-            <h3> Methodology </h3>
+            <h3> Methodology, Setup, and Confoguration</h3>
 
-            <h4> Setup and Configuration </h4>
-            <h5>Compute</h5>
+            <h4>Compute</h4>
             <p>
                 All work was done on a 2020 M1 Macbook Pro with 8gb of memory.
             </p>
 
-            <h5> Physics Engine </h5>
+            <h4> Physics Engine </h4>
             <p>
                 All training was done in PyBullet, with the following Engine Parameters.
                 I needed a high fidelity simulation to account for numerous collisions
@@ -127,7 +126,7 @@
                 </tbody>
             </table>
 
-            <h5>Robot Configuration</h5>
+            <h4>Robot Configuration</h4>
             <p>
                 We use PyBullet's built in humanoid URDF: "humanoid/humanoid.urdf".
                 To my surprise, when loading this URDF using default settings, a giant 6m tall humanoid is loaded!
@@ -303,7 +302,7 @@
                 maximum allowed torques are the above torques are divided by 4
             </p>
 
-            <h5>Reward</h5>
+            <h4>Reward</h4>
             <p>
                 The reward sets the incentives for the robot to learn. Below is a summary table of the components of my
                 reward. Total reward is the sum of these components.
@@ -313,7 +312,7 @@
                     <tr>
                         <th>Reward Component</th>
                         <th>Weight</th>
-                        <th>Description & Strategy</th>
+                        <th>Description/Comments</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -331,7 +330,7 @@
                     <tr>
                         <td><code>root_height</code> / <code>neck_height</code></td>
                         <td>5.0 (ea)</td>
-                        <td>Motivation to lift head and pelvis.</td>
+                        <td>Motivation to lift pelvis and head.</td>
                     </tr>
                     <tr>
                         <td><code>neck_orientation</code></td>
@@ -377,20 +376,153 @@
                 </tbody>
             </table>
 
-            <h5>Observations</h5>
+            <h4>Observations</h4>
 
             <p>
                 The observations for each step consist of the joint angles and velocities for each joint; the Base
                 Link's
                 position, orientation, and angular velocity; and the previous action (so that the optimizer can actually
                 minimize
-                the difference between the previous and current action).
+                the difference between the previous and current action). For 1-DOF joints there is a single scalar for
+                each of
+                the angular velocity and joint position. For spherical joints there are 4 quaternions to represent the
+                orientations and
+                3 scalars to represent the angular velocity. Thus, the total observation vector is of size 102.
             </p>
 
-            <br> <br>
+            <h4> Actions </h4>
+            As mentioned previously, the action is simply a scalar torque for each degree of freedom, so we have a
+            vector of
+            size 28. The actions are
+            applied to the joints, and then I run the simulation for 8 steps in PyBullet before incrementing the
+            training-step. So effectively the training is done at 60Hz. The simulation is running at 480Hz, which means
+            there
+            are 480 simulation steps per second, and 8 simulation steps per action-step means 60 action steps per
+            second.
+
+            <h4> Curriculum and Wrappers </h4>
+            <p>
+                For the first wrapper, I utilize a "Spring Curriculum". This is a magic assitive force applied to the
+                root
+                link (pelvis)
+                to lift the robot up.
+                It is a PD-style force governed by the equation F = kp * (position error) + kd * (velocity error).
+                I set kp = 0.16 * (weight of robot) and kd = 2.5 * (weight of robot). Position error is equal to 5.0 -
+                root_z_position. Velocity error is -root_z_velocity. The result is a string that magically always
+                pulls the root vertically up, and the force is stronger when the robot's root is low.
+                The assitive force has a 12% probability of being engaged each epsiode.
+                This is applied throughout the training run.
+            </p>
+            <p> Then, I apply, in order, a Montior wrapper, DummyVecEnv, VecFrameStack (n_stack=8), VecNormalize
+                (norm_obs=True, norm_reward=True, clip_reward=88.8).
+            </p>
+
+            <h4> Model Hyper-Parameters</h4>
+            <p> Here are the hyper-parameters of the model.</p>
+
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>Hyperparameter</th>
+                        <th>Value</th>
+                        <th>Description/Comments</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>net_arch</code></td>
+                        <td>[256, 256]</td>
+                        <td>Two layer neural network for both actor and critic. Relatively large size to capture
+                            complexity of task.</td>
+                    </tr>
+
+                    <tr>
+                        <td><code>log_std_init</code></td>
+                        <td>-2.0</td>
+                        <td>Low initial std. to stabilize high DOF movements.</td>
+                    </tr>
+                    <tr>
+                        <td><code>use_sde</code></td>
+                        <td>True</td>
+                        <td>State Dependent Exploration -- applies noise to weights of neural network rather than the
+                            actions, making actions "state-dependent" and thus smoother.</td>
+                    </tr>
+                    <tr>
+                        <td><code>sde_sample_freq</code></td>
+                        <td>4</td>
+                        <td>Updates the SDE "noise" every 4 steps.</td>
+                    </tr>
+                    <tr>
+                        <td><code>learning_rate</code></td>
+                        <td>5.0e-5 (Linear Decay)</td>
+                        <td>
+                            Low starting learning rate that decays linearly to 0 throughout the training run, so updates
+                            become increasingly fine-tuned.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>n_steps</code></td>
+                        <td>4096</td>
+                        <td>The size of the rollout buffer. Captures 4096 training steps.</td>
+                    </tr>
+                    <tr>
+                        <td><code>batch_size</code></td>
+                        <td>2048</td>
+                        <td>Number of training steps processed per update.</td>
+                    </tr>
+                    <tr>
+                        <td><code>n_epochs</code></td>
+                        <td>5</td>
+                        <td>Number of times the optimizer passes through the rollout buffer. Data is shuffled in between
+                            epochs, and random batch of batch_size is processed. Don't want it too high so noisy data
+                            isn't "memorized".</td>
+                    </tr>
+                    <tr>
+                        <td><code>gamma</code></td>
+                        <td>0.995</td>
+                        <td>Used by critic to calculate reward. It is the discount factor for future rewards; high value
+                            gives higher weight to future
+                            rewards.</td>
+                    </tr>
+                    <tr>
+                        <td><code>gae_lambda</code></td>
+                        <td>0.95</td>
+                        <td>Multiplied by gamma to arrive at the discount factor for the error terms (predicted vs
+                            actual reward) to calculate
+                            "advantage".</td>
+                    </tr>
+                    <tr>
+                        <td><code>clip_range</code></td>
+                        <td>0.2</td>
+                        <td>The maximum allowed change in the action's PDF ratio during SGD.
+                            If the ratio exceeds the
+                            +/- 20% clip boundary, the local gradient becomes 0, resulting in no weight update for that
+                            sample.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>ent_coef</code></td>
+                        <td>0.001</td>
+                        <td>A little bit of entropy coefficient to incentivize randomness and learning, so we don't
+                            stall.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4> Training and Experiments </h4>
+            <p>
+                Each training run's data was logged to TensorBoard, including a breakdown of each of the reward
+                components.
+
+                Training weights were applied to a prone robot without the spring-assist curriculum wrapper in GUI
+                (visualization) mode, and results were visually inspected with screenshots taken as needed.
+
+                All results were tabulated in a spreadsheet. Ultimately, there were over 130 experimental runs,
+                some up to 50 million steps!
+            </p>
 
 
-
+            <h3>Results and Discussion</h3>
 
 
 
