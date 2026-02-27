@@ -42,30 +42,357 @@
 
             </p>
 
-            <h3>Abstract</h3>
+            <h3>Summary</h3>
             <p>
-                I used Proximal Policy Optimization to train a 28-degree-of-freedom humanoid to stand.
+                I used Proximal Policy Optimization to train a 28-degree-of-freedom humanoid to stand
+                starting from the prone
+                (lying face down)
+                position.
                 I used direct torque application to the joints, so the actions outputted by the policy represent
-                torques. Typically (I believe), these tasks are trained with position-control, and training in
+                torques, one scalar for each DOF. Typically (I believe), these tasks are trained with position-control,
+                and training in
                 torque-space
                 significantly
                 increases the difficulty of the problem.
                 Link masses and joint dampening were modified from the default settings
                 to facillitate balance and control.
-                Finding a working reward function was a tedious and time consuming exrcise, and will be detailed in the
+                Finding a working reward function was a tedious and time consuming exercise, and will be detailed in the
                 methodology section.
                 In the "final" result, I trained for 10 million steps on my local MacBook (6.5 hours) to achieve stable
                 and improving learning
                 metrics.
                 The humanoid is able to force itself into an upright standing position, but fails to maintain the pose
                 for long.
-                Although it is not a perfectly balanced stand, and the movement is still a bit more chaotic than I would
-                hope,
-                I am happy with the result considering the difficulty of the problem and the short number steps trained.
+                Although it is not a perfectly balanced stand, and the movement is still quite chaotic,
+                I am happy with the result considering the difficulty of the problem and the small number of steps
+                trained.
                 A more refined stand would require significantly more effort to fine-tune parameters and configurations
                 as well
                 as significantly longer training.
             </p>
+
+            <h3> Methodology </h3>
+
+            <h4> Setup and Configuration </h4>
+            <h5>Compute</h5>
+            <p>
+                All work was done on a 2020 M1 Macbook Pro with 8gb of memory.
+            </p>
+
+            <h5> Physics Engine </h5>
+            <p>
+                All training was done in PyBullet, with the following Engine Parameters.
+                I needed a high fidelity simulation to account for numerous collisions
+                and complex dynamics.
+            </p>
+
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Value</th>
+                        <th> Rationale </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            Time-Step
+                        </td>
+                        <td>
+                            480 Hz
+                        </td>
+                        <td> Many time-stpes per second to have high fidelity simulation. </td>
+                    </tr>
+                    <tr>
+                        <td>numSubSteps</td>
+                        <td>4</td>
+                        <td>High number of updates per time step to improve fidelity of simulation.</td>
+                    </tr>
+                    <tr>
+                        <td>numSolverIterations</td>
+                        <td>150</td>
+                        <td>Relatively high number of calculations to produce good physics.</td>
+                    </tr>
+                    <tr>
+                        <td>erp</td>
+                        <td>0.2</td>
+                        <td>Fix 20% of the "error" every frame.</td>
+                    </tr>
+                    <tr>
+                        <td>contactSlop</td>
+                        <td>0.001</td>
+                        <td> Strict contact calculations (lower tolerance for error).</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h5>Robot Configuration</h5>
+            <p>
+                We use PyBullet's built in humanoid URDF: "humanoid/humanoid.urdf".
+                To my surprise, when loading this URDF using default settings, a giant 6m tall humanoid is loaded!
+                I actually used this "giant" for this project for many iterations before deciding that the
+                physics don't work out that well. So global scaling of 0.32 was applied to get it to a reasonable size.
+
+                <br> <br>
+
+                The mass of each link was customized as well. The defaults were a bit too top-heavy for stable physics.
+                Joint damping of 0.5 and angular damping of 0.1 was applied to each joint.
+
+                I created a custom "torque-map" for each joint as well as a torque scaling factor,
+                both of these had to be tuned through experimentation.
+            </p>
+
+            <p> Here is the table of masses I configured: </p>
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Link Name</th>
+                        <th>Mass (kg)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>-1</td>
+                        <td>base</td>
+                        <td>0.001</td>
+                    </tr>
+                    <tr>
+                        <td>0</td>
+                        <td>root</td>
+                        <td>33.000</td>
+                    </tr>
+                    <tr>
+                        <td>1</td>
+                        <td>chest</td>
+                        <td>20.000</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>neck</td>
+                        <td>4.000</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>right_shoulder</td>
+                        <td>3.500</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>right_elbow</td>
+                        <td>2.500</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>right_wrist</td>
+                        <td>1.000</td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>left_shoulder</td>
+                        <td>3.500</td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td>left_elbow</td>
+                        <td>2.500</td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td>left_wrist</td>
+                        <td>1.000</td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td>right_hip</td>
+                        <td>16.000</td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td>right_knee</td>
+                        <td>10.000</td>
+                    </tr>
+                    <tr>
+                        <td>11</td>
+                        <td>right_ankle</td>
+                        <td>2.500</td>
+                    </tr>
+                    <tr>
+                        <td>12</td>
+                        <td>left_hip</td>
+                        <td>16.000</td>
+                    </tr>
+                    <tr>
+                        <td>13</td>
+                        <td>left_knee</td>
+                        <td>10.000</td>
+                    </tr>
+                    <tr>
+                        <td>14</td>
+                        <td>left_ankle</td>
+                        <td>2.500</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2"><strong>Total Mass</strong></td>
+                        <td><strong>128 kg</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <p> Here is the table of maximum allowed torques for each joint that I configured: </p>
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>Joint/Link Name</th>
+                        <th>Max Torque (Nm)</th>
+                        <th>DoF</th>
+                        <th>Comments </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Chest</td>
+                        <td>500, 500, 500</td>
+                        <td>3</td>
+                        <td>Strong "core".</td>
+                    </tr>
+                    <tr>
+                        <td>Neck</td>
+                        <td>200, 200, 200</td>
+                        <td>3</td>
+                        <td>Stabilize the head.</td>
+                    </tr>
+                    <tr>
+                        <td>Shoulders (L/R)</td>
+                        <td>200, 200, 200</td>
+                        <td>3 (ea)</td>
+                        <td>Help with pushup</td>
+                    </tr>
+                    <tr>
+                        <td>Elbows (L/R)</td>
+                        <td>100</td>
+                        <td>1 (ea)</td>
+                        <td>Help with support and push-up</td>
+                    </tr>
+                    <tr>
+                        <td>Hips (L/R)</td>
+                        <td>800, 800, 800</td>
+                        <td>3 (ea)</td>
+                        <td>Needed for support and squat.</td>
+                    </tr>
+                    <tr>
+                        <td>Knees (L/R)</td>
+                        <td>800</td>
+                        <td>1 (ea)</td>
+                        <td>Needed to support stand and squat movement.</td>
+                    </tr>
+                    <tr>
+                        <td>Ankles (L/R)</td>
+                        <td>400, 400, 400</td>
+                        <td>3 (ea)</td>
+                        <td>Strong ankles to support entire body.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>
+                And for the final result, the "torque-scale" I used was 0.25. So the actual
+                maximum allowed torques are the above torques are divided by 4
+            </p>
+
+            <h5>Reward</h5>
+            <p>
+                The reward sets the incentives for the robot to learn. Below is a summary table of the components of my
+                reward. Total reward is the sum of these components.
+            </p>
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>Reward Component</th>
+                        <th>Weight</th>
+                        <th>Description & Strategy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>uprightness</code></td>
+                        <td>12.0</td>
+                        <td>Primary goal. It is the chest height (z-axis) multiplied by the orientation.
+                            So it is high when the chest is high and the orientation is upright.</td>
+                    </tr>
+                    <tr>
+                        <td><code>chest_height</code></td>
+                        <td>6.0</td>
+                        <td>Encourages high chest. Capped at the height when standing.</td>
+                    </tr>
+                    <tr>
+                        <td><code>root_height</code> / <code>neck_height</code></td>
+                        <td>5.0 (ea)</td>
+                        <td>Motivation to lift head and pelvis.</td>
+                    </tr>
+                    <tr>
+                        <td><code>neck_orientation</code></td>
+                        <td>5.0</td>
+                        <td>Motivation to keep head upright.</td>
+                    </tr>
+                    <tr>
+                        <td><code>termination_penalty</code></td>
+                        <td>-10.0</td>
+                        <td>Episode terminates and termination penalty applied when chest height is greater than 60% of
+                            the standing height. If greater than 25% of the target height, penalty applied but episode
+                            does not terminate. If 128 steps have elapsed in the spisode and chest height < target
+                                height / 6, episode terminates and half the weight is applied.</td>
+                    </tr>
+                    <tr>
+                        <td><code>self_contact</code></td>
+                        <td>-2.0</td>
+                        <td>
+                            Disincentivizes robot from hitting itself. Total penalty = -2.0 * number of self contacts
+                            across
+                            all links.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>action_rate_cost</code></td>
+                        <td>-0.5</td>
+                        <td>Encourages smooth movement. Sum of squares of differences between current action vector and
+                            previous action vector.</td>
+                    </tr>
+                    <tr>
+                        <td><code>feet_height</code></td>
+                        <td>-0.5</td>
+                        <td>Discourages the robot from lifting its feet too high off the ground.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>energy_cost</code></td>
+                        <td>-0.1</td>
+                        <td>
+                            Sum of squares of current action vector.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h5>Observations</h5>
+
+            <p>
+                The observations for each step consist of the joint angles and velocities for each joint; the Base
+                Link's
+                position, orientation, and angular velocity; and the previous action (so that the optimizer can actually
+                minimize
+                the difference between the previous and current action).
+            </p>
+
+            <br> <br>
+
+
+
+
+
 
 
 
