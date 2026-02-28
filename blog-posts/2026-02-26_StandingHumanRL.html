@@ -24,7 +24,7 @@
         <article class="blog-post">
             <h2>Reinforcement Learning:
                 Training a Humanoid to Stand in PyBullet with Proximal Policy Optimization</h2>
-            <p><em>February 26, 2026</em></p>
+            <p><em>February 28, 2026</em></p>
 
             <p>
                 After getting the hang of the PyBullet environment, I attempted the challenging task of training a
@@ -32,8 +32,8 @@
                 I shall document my journey in this blog post, and structure it similar to a research paper
                 for organization purposes. I think I will focus on my "final" result -- it might take too long to
                 document
-                everything I tried! I tuned all kinds of parameteres and configurations over the past several months --
-                Reinforcement learning is for sure a tedious and challening beast!
+                everything I tried! I tuned all kinds of parameters and configurations over the past several months --
+                Reinforcement learning is for sure a tedious and challenging beast!
 
                 I am utterly fascinated by this whole process of breathing life into a robot -- to see what it is able
                 to learn
@@ -55,7 +55,7 @@
                 significantly
                 increases the difficulty of the problem.
                 Link masses and joint dampening were modified from the default settings
-                to facillitate balance and control.
+                to facilitate balance and control.
                 Finding a working reward function was a tedious and time consuming exercise, and will be detailed in the
                 methodology section.
                 In the "final" result, I trained for 10 million steps on my local MacBook (6.5 hours) to achieve stable
@@ -71,11 +71,11 @@
                 as significantly longer training.
             </p>
 
-            <h3> Methodology, Setup, and Confoguration</h3>
+            <h3> Methodology, Setup, and Configuration</h3>
 
             <h4>Compute</h4>
             <p>
-                All work was done on a 2020 M1 Macbook Pro with 8gb of memory.
+                All work was done on a 2020 M1 MacBook Pro with 8gb of memory.
             </p>
 
             <h4> Physics Engine </h4>
@@ -101,7 +101,7 @@
                         <td>
                             480 Hz
                         </td>
-                        <td> Many time-stpes per second to have high fidelity simulation. </td>
+                        <td> Many time-steps per second to have high fidelity simulation. </td>
                     </tr>
                     <tr>
                         <td>numSubSteps</td>
@@ -342,7 +342,7 @@
                         <td>-10.0</td>
                         <td>Episode terminates and termination penalty applied when chest height is greater than 60% of
                             the standing height. If greater than 25% of the target height, penalty applied but episode
-                            does not terminate. If 128 steps have elapsed in the spisode and chest height < target
+                            does not terminate. If 128 steps have elapsed in the episode and chest height < target
                                 height / 6, episode terminates and half the weight is applied.</td>
                     </tr>
                     <tr>
@@ -402,7 +402,7 @@
 
             <h4> Curriculum and Wrappers </h4>
             <p>
-                For the first wrapper, I utilize a "Spring Curriculum". This is a magic assitive force applied to the
+                For the first wrapper, I utilize a "Spring Curriculum". This is a magic assistive force applied to the
                 root
                 link (pelvis)
                 to lift the robot up.
@@ -410,10 +410,10 @@
                 I set kp = 0.16 * (weight of robot) and kd = 2.5 * (weight of robot). Position error is equal to 5.0 -
                 root_z_position. Velocity error is -root_z_velocity. The result is a string that magically always
                 pulls the root vertically up, and the force is stronger when the robot's root is low.
-                The assitive force has a 12% probability of being engaged each epsiode.
+                The assistive force has a 12% probability of being engaged each episode.
                 This is applied throughout the training run.
             </p>
-            <p> Then, I apply, in order, a Montior wrapper, DummyVecEnv, VecFrameStack (n_stack=8), VecNormalize
+            <p> Then, I apply, in order, a Monitor wrapper, DummyVecEnv, VecFrameStack (n_stack=8), VecNormalize
                 (norm_obs=True, norm_reward=True, clip_reward=88.8).
             </p>
 
@@ -512,17 +512,178 @@
             <h4> Training and Experiments </h4>
             <p>
                 Each training run's data was logged to TensorBoard, including a breakdown of each of the reward
-                components.
+                components. Training runs were performed one after another, with no parallelization or simultaneous
+                experiments.
 
-                Training weights were applied to a prone robot without the spring-assist curriculum wrapper in GUI
-                (visualization) mode, and results were visually inspected with screenshots taken as needed.
+                <br> <br>
+
+                Trained weights were applied to a prone robot without the spring-assist curriculum wrapper in GUI
+                (visualization) mode, and results were visually inspected for 10 episodes,
+                with screenshots taken as needed.
+
+                <br> <br>
 
                 All results were tabulated in a spreadsheet. Ultimately, there were over 130 experimental runs,
                 some up to 50 million steps!
             </p>
 
 
-            <h3>Results and Discussion</h3>
+            <h3>Results</h3>
+            <p>
+                The robot is not able to do a clean, beautiful stand as I had hoped.
+                But it does make an organized attempt at achieving the goal.
+                It is often (though not always) able to stand for a brief moment,
+                usually balancing on one foot.
+            </p>
+
+            <p>Below are images of the TensorBoard output for the "final" result.</p>
+
+            <p>Reward Components:</p>
+            <a href="../assets/images/2026-02-26/reward_components.png" target="_blank">
+                <img src="../assets/images/2026-02-26/reward_components.png" alt="Reward Components" class="post-image">
+            </a>
+
+            <p>Training Results:</p>
+            <a href="../assets/images/2026-02-26/training_result.png" target="_blank">
+                <img src="../assets/images/2026-02-26/training_result.png" alt="Reward Components" class="post-image">
+            </a>
+
+            <p>
+                For me, the main thing that makes this a positive result is the continuously upward sloping ep_rew_mean
+                (total average reward) and the high explained variance. Also, the KL-divergence is non-zero and never
+                exceeds 1%,
+                and the clip fraction is non-zero and never exceeds 4%, meaning the algorithm is successfully learning,
+                and
+                there
+                is no learning collapse or some crazy updates. KL-Divergence and Clip Fraction naturally decay to zero
+                because
+                of my learning rate decay.
+            </p>
+
+            <p>
+                Below is a video clip showing 10 episodes of performing inference with the trained weights,
+                using Deterministic Mode. The video shows 10 episodes in the "default view", then 10 episodes in
+                an alternative view.
+            </p>
+
+            <p>
+                In most of the episodes, the robot is able to stumble and force itself into a standing position for a
+                brief moment. The movement is still very chaotic, not smooth, and not really "intelligent" or
+                "athletic". But I believe there is genuine progress towards achieving the goal.
+
+                <br> <br>
+                Video Demonstration:
+                <iframe style="width: 100%; aspect-ratio: 16/9; border: 0;"
+                    src="https://www.youtube.com/embed/vCWr0DrHzn4?si=Cv2-Wq68heVDziyL" title="YouTube video player"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            </p>
+
+            <h3> Discussion </h3>
+
+            <p>
+                For this project, numerous configurations had to be tweaked -- everything from the robot configuration
+                to the hyper parameters of the training model. Getting the robot to even learn anything was a
+                non-trivial
+                task.
+            </p>
+
+            <p>
+                There were numerous failure states that had to be addressed. The most fundamental of these is the
+                physics itself. The default URDF had a top-heavy robot that spawns as a "giant" 6m giant. I tried
+                to work with this at first, but realized that the masses and size of the robot had to be modified to
+                achieve a reasonable simulation. The torque to apply to each joint also had to be tuned.
+                It needs enough power for complex movements, but it cannot be so powerful as to fly
+                away. The torques have to make sense so as not to break the simulation.
+                I frequently encountered strange physics results such as the robot "floating", or "sliding".
+                The physics
+                engine
+                itself also had to be tuned to ensure fidelity of the simulation.
+            </p>
+
+            <p>
+                Another failure state is failing to learn anything. The robot would just wiggle on the floor for
+                the entire run. This was mainly due to an improper reward economy, or over-regularization. At first my
+                "penalties" were too high, and the agent simply learned doing nothing was the best approach.
+                Or if the agent does not receive any positive signal or gradient from the reward, there is no learning
+                done. So the reward has to be shaped in such a way that even with small random movements, the agent
+                is able to achieve
+                slight positive feedback towards the right direction.
+                At first, I thought giving big rewards for
+                "milestones"
+                achieved would improve learning, but its better to have a continuous linear reward. For example, a
+                linear
+                chest height reward is better than a step-function.
+                <br> <br>
+
+                One trick I learned that made a surprisingly large difference was to ensure action-rate penalty was
+                squared. At first, I used the norm of the difference of action vectors, but somehow the agent never
+                really learned to minimize this. Later, I switched to sum of squares of the difference, and the agent
+                would always successfully learn to minimize this metric. This is because random noise is built into
+                the PPO training, and the agent is being punished for this noise -- larger deviations are punished
+                more, but not significantly more.
+                Using the squared rule, small deviations are barely punished, but
+                large ones are penalized severely. <br> <br>
+
+                I think in general, the penalties should be squared, and the rewards should be linear, although that is
+                just my hunch.
+            </p>
+
+            <p>
+                When the robot is able to learn, and training metrics are healthy, the robot still might learn the wrong
+                thing. This is just due to the different rewards having incorrect weights, or missing a term in the
+                reward. For example, one persistent problem I found was that the would learn to lunge its leg into the
+                air
+                and use that momentum to gain some points for chest height. This is good for some temporary reward,
+                but not good for an actual standing motion. At first, I used a foot contact reward -- rewarding points
+                for each foot on the ground. I found this discrete reward did not work too well, and it would still
+                shoot
+                one leg in the air. So I switched to a continuous penalty of the foot height. I used a linear penalty,
+                but I suspect
+                if I square it I will get better results.
+                In this final result, the robot still raises its feet and relies on that momentum, but it is
+                significantly more regulated than before, and at least it moves towards the final goal of standing,
+                rather than
+                just a short-term bump in reward. Perhaps the feet_height weight
+                needs to be increased in addition to using a squared penalty.
+
+
+
+
+            </p>
+
+            <h3>Conclusion</h3>
+
+            <p>
+                This was a challenging learning task in a high-dimensional space. I made significant progress towards
+                the
+                final goal, and there is a significant amount of work left to be done to achieve
+                a beautiful standing motion.
+                I am ending this project at this point because of the good amount of progress and learning I have
+                achieved.
+
+                <br> <br>
+
+                I feel that reinforcement learning is a powerful technique, and real results are achieved through
+                tedious trial and error. But it is inefficient, and fundamentally "unintelligent". I believe I achieved
+                reasonable results using this technique within a reasonable amount of time using minimal hardware.
+                I would need more time and industrial grade GPUs to train a proper standing motion using torque-action
+                in this high-dimensional space. I would need to parallelize multiple experiments simultaneously
+                to make progress. But that would still amount to a "brute-force" approach -- albeit in a
+                more professional or industrial way.
+
+                <br> <br>
+                I wonder if more "intelligent" approaches exist.
+
+            </p>
+
+
+
+
+
+
+
 
 
 
