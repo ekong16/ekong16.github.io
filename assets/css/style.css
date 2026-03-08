@@ -137,6 +137,14 @@ ul {
 
 }
 
+table td,
+table th,
+table code {
+    font-size: 0.88rem;
+    line-height: 1.28;
+    /* Improves readability if the text gets small */
+}
+
 .post-image {
     width: 100%;
     max-width: 800px;
