@@ -230,11 +230,335 @@
             <h4> Predictor Training </h4>
 
             <p>
-
+                The predictor model's input is Z_0 and Action, and it is trained to output Z_1. As a reminder, the
+                latent states (Z_0, Z_1)
+                have dimension (2048, 1024), representing 2048 "tokens" of size 1024. The action is a vector of size 28.
+            </p>
+            <p>
+                In the model, we first preprocess the action to encode it as a larger vector of size hidden_dim=512 by
+                passing it through two linear MLP layers with the first one outputting size 128 and final one size 512,
+                with
+                a GELU activation in between and layer norm at the end. We preprocess the input latent Z_0 by first
+                doing a layer
+                norm,
+                and then adding sin/cos positional embeddings (see the "Attention is All You Need" paper). We compress
+                this shape into the hidden_dim=512 by using a linear MLP layer. We then broadcast the action to this
+                compressed
+                latent state by concatenating the encoded action to the beginning and also adding it. We then pass this
+                through a transformer with 4 heads with feed forward dimension of 4*hidden_dim = 2048. We have two
+                layers of this transformer. The output of this transformer is then multiplied by a learnable scaling
+                parameter
+                before being added back to the original Z_0 input. So
+                the transformer is trained to look for the delta (Z_1 - Z_0).
             </p>
 
+            <p>
+                The loss function is a custom L1 function that hones in on the tokens that change the most.
+                We first take the difference of Z_0 and Z_1 (actual), then take the average across the token dimension.
+                This gets as 2048 numbers
+                representing the average change of each token. We multiply by 50 and add 1 to get a "diff mask".
+                Then we take the raw L1 of the predicted Z_1 and actual Z_1, multiply by this diff mask and take the
+                mean. So effectively, we have a weighted L1 loss that penalizes error in tokens more when the token
+                actually changes significantly from the prior state. We use cosine annealing for the learning rate.
+            </p>
 
+            <p>
+                The scaling parameter was initialized at 0.1. So effectively, in the beginning of training, the model
+                would tend to predict the Z_1 = Z_0, but the scaling factor would rise as the model became more
+                "confident" in the output of the transformer.
+            </p>
 
+            <p>
+                I thought this was a clever training trick, but I am actually dubious that it resulted in a more
+                effective
+                training result (lol). It seems just using the standard L1 loss function resulted in more or less the
+                same final result. But I think the training trajectory of this technique is better, and it results in a
+                model
+                that better understands the change from one state to another.
+            </p>
+
+            <p>
+                Below is the model summary.
+            </p>
+
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>Layer (type:depth-idx)</th>
+                        <th>Output Shape</th>
+                        <th>Param #</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>WorldPredictorPro</td>
+                        <td>[2, 2048, 1024]</td>
+                        <td>1</td>
+                    </tr>
+                    <tr>
+                        <td>├─LayerNorm: 1-1</td>
+                        <td>[2, 2048, 1024]</td>
+                        <td>2,048</td>
+                    </tr>
+                    <tr>
+                        <td>├─Linear: 1-2</td>
+                        <td>[2, 2048, 512]</td>
+                        <td>524,800</td>
+                    </tr>
+                    <tr>
+                        <td>├─Sequential: 1-3</td>
+                        <td>[2, 512]</td>
+                        <td>--</td>
+                    </tr>
+                    <tr>
+                        <td>│&nbsp;&nbsp;&nbsp;└─Linear: 2-1</td>
+                        <td>[2, 128]</td>
+                        <td>3,712</td>
+                    </tr>
+                    <tr>
+                        <td>│&nbsp;&nbsp;&nbsp;└─GELU: 2-2</td>
+                        <td>[2, 128]</td>
+                        <td>--</td>
+                    </tr>
+                    <tr>
+                        <td>│&nbsp;&nbsp;&nbsp;└─Linear: 2-3</td>
+                        <td>[2, 512]</td>
+                        <td>66,048</td>
+                    </tr>
+                    <tr>
+                        <td>│&nbsp;&nbsp;&nbsp;└─LayerNorm: 2-4</td>
+                        <td>[2, 512]</td>
+                        <td>1,024</td>
+                    </tr>
+                    <tr>
+                        <td>├─TransformerEncoder: 1-4</td>
+                        <td>[2, 2049, 512]</td>
+                        <td>--</td>
+                    </tr>
+                    <tr>
+                        <td>│&nbsp;&nbsp;&nbsp;└─ModuleList: 2-5</td>
+                        <td>--</td>
+                        <td>--</td>
+                    </tr>
+                    <tr>
+                        <td>│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└─TransformerEncoderLayer: 3-1</td>
+                        <td>[2, 2049, 512]</td>
+                        <td>3,152,384</td>
+                    </tr>
+                    <tr>
+                        <td>│&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└─TransformerEncoderLayer: 3-2</td>
+                        <td>[2, 2049, 512]</td>
+                        <td>3,152,384</td>
+                    </tr>
+                    <tr>
+                        <td>├─Linear: 1-5</td>
+                        <td>[2, 2048, 1024]</td>
+                        <td>525,312</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <br>
+
+            <table border="1">
+                <tbody>
+                    <tr>
+                        <td><strong>Total params:</strong></td>
+                        <td>7,427,713</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Trainable params:</strong></td>
+                        <td>7,427,713</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Non-trainable params:</strong></td>
+                        <td>0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total mult-adds (Units.MEGABYTES):</strong></td>
+                        <td>10.65</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <br>
+
+            <table border="1">
+                <tbody>
+                    <tr>
+                        <td><strong>Input size (MB):</strong></td>
+                        <td>16.78</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Forward/backward pass size (MB):</strong></td>
+                        <td>318.90</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Params size (MB):</strong></td>
+                        <td>21.31</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Estimated Total Size (MB):</strong></td>
+                        <td>356.98</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>
+                Below are images summarizing the training result.
+            </p>
+
+            <p>
+                First, the loss curve of the actual loss metric used in backpropagation.
+            </p>
+
+            <a href="../assets/images/2026-03-17/loss_backprop.png" target="_blank">
+                <img src="../assets/images/2026-03-17/loss_backprop.png" alt="Backprop Loss Img" class="post-image">
+            </a>
+
+            <p>
+                Next, the loss curve of the raw L1 between the predicted and actual latent state, together with the
+                baseline L1 between Z_0 and Z_1 across the dataset.
+            </p>
+            <a href="../assets/images/2026-03-17/loss_pred.png" target="_blank">
+                <img src="../assets/images/2026-03-17/loss_pred.png" alt="Loss Pred Img" class="post-image">
+            </a>
+
+            <p>
+                Total training time was ~30 hours on my MacBook.
+                I also probably should have held out a validation set. But wanted to make full use of my data and I
+                doubt my model is over-fitting due to
+                small number of parameters.
+            </p>
+
+            <h4>
+                Cross-Entropy Method Action Planning
+            </h4>
+            <p>
+                To determine the ideal sequence of actions, we use a monte-carlo method.
+            </p>
+            <p>
+                So we allow for 6 total actions. Recall that each action takes 160 physics steps, and there's 480 steps
+                per second. So each action
+                represents 1/3 of a second,
+                and 6 actions represents 2 seconds or real world time.
+            </p>
+            <p>
+                For each of the 6 steps, we iterate 5 times, each time narrowing the search space.
+                We start by sampling 1000 actions from Uniform(-1, 1).
+                For all the actions, we take the current latent state Z_0 (initialized as the lying down pose), and
+                calculate Z_1_pred = Model(Z_0, Action).
+                We take Energy_Diff = L1(Z_1_pred, GOAL_Latent), and select the 150 elite Actions with smallest
+                Energy_Diff. We take Mean and Std Dev of these elites.
+                We sample 1000 new actions from Normal(Action_Mean, Action Std Dev),
+                and run it through the model to select the next batch of elites.
+                After 5 iterations, the final Action Mean is our chosen "best action" for that step.
+
+                We run Z_1_next = Model(Z_0, Chosen Action) to predict the next latent state, and Z_1_next
+                becomes Z_0 in the next step.
+            </p>
+            <p>
+                For each of the 6 steps, the goal latents are Knee Tuck, Low Stand, then Standing for the remaining 4.
+                (See the Pose Studio discussion above). So I gave it a simple "trajectory".
+            </p>
+
+            <p>
+                This process took ~4 hours for 10 total trials (10 sets of 6 steps).
+            </p>
+
+            <h3> Results </h3>
+
+            <p>
+                Here is the video replay of all 10 trials, recorded through my PyBullet camera module.
+            </p>
+
+            <video src="../assets/images/2026-03-17/results_video/final_result_video.mp4" controls class="post-video"
+                style="width:256px;">
+                Your browser does not support the video tag.
+            </video>
+
+            <p>
+                Trial 7 seemed to have the most successful attempt. The results are not super great,
+                and I'm not sure if the movements are random or intelligent.
+                But more on this in the discussion!
+            </p>
+
+            <p>
+                Here is a recording of the actual simulation of the 10 trials, from different angles.
+            </p>
+
+            <iframe style="width: 100%; aspect-ratio: 16/9; border: 0;"
+                src="https://www.youtube.com/embed/x3T1RVlRrpk?si=nGmZEqjGJ7TSASM2" title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+            <h3>Discussion</h3>
+
+            <p>
+                I think the results are OK (but not great). I still feel optimistic about this approach when compared
+                to alternatives such as model-free reinforcement learning (like my previous blog post).
+                There are things that I needed to iterate on, especially regarding the CEM and the predictor training,
+                but the number of things to tweak in the PPO approach was vastly more. There
+                are infinite things you can add to your reward function, and infinite regularizer and penalties to
+                experiment with.
+                With the world model approach, at least you are starting with a pair of eyes that somewhat understand
+                the
+                world. And the planning seems to be a bit more deterministic than purely random actions of RL.
+
+                Initially, I wanted to keep the RL-PPO approach but use the JEPA distance as the reward function,
+                but this proved
+                to be way too slow, and prevented me from running the millions of steps necessary. So I pivoted to the
+                predictor training + CEM approach, which I believe
+                is the
+                intended way to use V-JEPA.
+            </p>
+
+            <p>
+                I think the main issue I had was with the lack of discerning power of the predictor. In the final
+                trained model, I only had ~25%
+                improvement over predicting an unchanged latent state. I believe my model was too small, but it was
+                already
+                pushing the limits of my laptop. This just goes to show you need lots of compute to train a transformer
+                based model.
+            </p>
+
+            <p>
+                The other issue was that the training data consists of actions sampled from a uniform distribution. I
+                think this is too "sparse" in some sense, and I should have sampled from a normal distribution.
+                Furthermore,
+                I think it would be good to deliberately "zero-out" some or all of the actions so that we have isolated
+                joint-actions in the training set. That might give the predictor a better idea of how each joint affects
+                the change in latent space. I actually wrote a module to augment the training data in this fashion,
+                but I ran out of disk space (lol).
+            </p>
+
+            <p>
+                I think the last issue was the single camera perspective. I think you might get better results if you
+                incorporate
+                multiple camera views to get a better idea of what the robot is doing. But this would require
+                altering the training data and inference pipe significantly.
+            </p>
+
+            <h3>Conclusion</h3>
+            <p>
+                My main takeaway is that Video World Models show promise in robotics applications, but for now
+                they should probably be limited to low-DOF applications in controlled environments. And they
+                probably need to be combined with classical control-theory systems or standard RL algorithms
+                for real world use.
+            </p>
+
+            <p>
+                But I like the idea of the "energy" based system, and I think this technology has tremendous potential.
+                It's
+                almost like using deep learning to develop some notion of "common sense" about the world.
+            </p>
+            <p>
+                Gathering data and training the Predictor are highly challenging tasks.
+                Perhaps if there were some way to get an "out of the box" predictor that merely needs to be adapted
+                to specific action-domains (like transfer learning), much more mileage can be obtained
+                from these Video World Models.
+            </p>
 
 
             <a class="button" href="../blog.html">← Back to Blog</a>
