@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reinforcement Learning:
-        Training a Humanoid to Stand in PyBullet with Proximal Policy Optimization
+    <title>World Model Action Control:
+        Training a Humanoid to Stand in PyBullet Using V-JEPA 2
     </title>
     <link rel="stylesheet" href="../assets/css/style.css"> <!-- note: relative path -->
 </head>
@@ -44,7 +44,7 @@
                 So there is an encoder and a predictor.
                 Frames of a video are encoded by the model into a "latent space", then subsequent frames (or even the
                 same frames) are transformed
-                via corruption or deletion, and finally the predictor is trained to output the untransformed frames in
+                via corruption or deletion, and finally the predictor is trained to predict the untransformed frames in
                 latent space.
                 So there is no "decoder". And the "predictor" is not really used at inference time -- it
                 exists to make learned latent representations sensible. So I had to train a custom predictor
@@ -85,8 +85,18 @@
                 The simulation setup and hardware is the exact same as the Reinforcement Learning Project, outlined
                 in my previous <a class="text" href="2026-02-26_StandingHumanRL.html"> blog post</a>.
 
-                As a reminder, all work is done on M1 Mac with 8gb ram, and simulation is running at 480Hz
+                As a reminder, all work is done on M1 Mac with 8gb ram ("MPS" as the "gpu"/"device"), and simulation is
+                running at
+                480Hz
                 (meaning each simulation step represents 1/480 seconds of simulated time).
+            </p>
+
+            <p>
+                Another thing worth mentioning is that to extract videos from PyBullet, I had to configure a camera
+                module and set the renderer to "p.ER_BULLET_HARDWARE_OPENGL" in order to capture color, shadows, and
+                texture. But this only worked when the engine is connected to the GUI. To save
+                compute and not render every single step, I call "p.configureDebugVisualizer(p.COV_ENABLE_RENDERING,
+                0)" (important in the data collection phase).
             </p>
 
             <p>
@@ -94,14 +104,135 @@
                 The HuggingFace link to the model can be found
                 <a class="text" href="https://huggingface.co/facebook/vjepa2-vitl-fpc16-256-ssv2">
                     here
-                </a>.
+                </a>. To use this model, I passed inputs of shape (16, 256, 256, 3), and it outputted latents of shape
+                (2048, 1024). Static images were repeated 16 times to get a "video" when necessary. The latent
+                can be interpreted as 2048 tokens of size 1024.
             </p>
 
             <h4> Initial Sanity Check </h4>
             <p>
-                Before embarking on this complicated project, I wanted to check to make sure that there is indeed a
-                sensible metric in the latent space.
+                Before embarking on this challenging project, I wanted to check to make sure that there is indeed a
+                sensible metric in the latent space. Do poses closer to the standing pose actually
+                have a lower L1 distance to it?
             </p>
+
+            <p>
+                To do this, I created a "pose studio" which allowed me to configure the humanoid robot in various poses,
+                and then I compared the L1 distance of the poses' latent representations to the target standing pose.
+
+                The camera module I set up captures images of size 256x256. I repeated the frame 16 times to create an
+                artificial
+                video buffer which I passed to the V-JEPA encoder.
+
+                Below are the results, in order of closest to furthest from the target standing pose as determined by
+                the L1 metric.
+            </p>
+
+
+            <div class="grid">
+                <figure><img src="../assets/images/2026-03-17/standing_pose.jpg">
+                    <figcaption>Standing (L1 = 0.00)</figcaption>
+                </figure>
+                <figure><img src="../assets/images/2026-03-17/athletic_low_stand.jpg">
+                    <figcaption>Athletic Low Stand (L1 = 1.43)</figcaption>
+                </figure>
+                <figure><img src="../assets/images/2026-03-17/no_robot.jpg">
+                    <figcaption>No Robot (L1 = 1.55)</figcaption>
+                </figure>
+                <figure><img src="../assets/images/2026-03-17/knee_tuck.jpg">
+                    <figcaption>Knee Tuck (L1 = 1.56)</figcaption>
+                </figure>
+                <figure><img src="../assets/images/2026-03-17/plank_pose.jpg">
+                    <figcaption>Plank (L1 = 1.65)</figcaption>
+                </figure>
+                <figure><img src="../assets/images/2026-03-17/lying_pose.jpg">
+                    <figcaption>Lying Down (L1 = 1.74)</figcaption>
+                </figure>
+            </div>
+
+            <p>
+                For the most part, poses closer to the desired stand pose indeed do have lower L1 distance!
+                However, the one problematic case is the scene with no robot at all, which scored higher
+                than everything except the athletic low stand!
+                This is an interesting case, but I decided to press on, as I was satisfied with the ordering of the
+                other poses.
+            </p>
+
+            <h4>
+                Data Collection for Predictor
+            </h4>
+            <p>
+                Training data needed to be collected for the action-aware predictor.
+            </p>
+
+            <p>
+                We represent each state as a video recording the application of a single action vector
+                for 160 physics simulation steps. We capture images every 10 steps for a total of 16 frames.
+                Since the simulator runs at 480Hz, this represents a 3Hz or 3FPS video. Each "sample" of data
+                consists of a triplet (Z_0, Action, Z_1), where Z_0 is the prior state, the Action is the
+                action we intend to apply, and Z_1 is the resulting state. The goal is to train a predictor
+                to predict Z_1 given Z_0 and Action.
+            </p>
+
+            <p>
+                To kick off the data collection process, we spawn the humanoid in the simulator at a random orientation.
+                Then we step
+                the simulation a random number of steps (uniform) between 20 and 150, and then apply an initial random
+                action vector sampled from Uniform(-1, 1). This gets us the initial Z_0. Then we apply another random
+                action
+                to
+                get Z_1. We then iterate for a maximum of 10 such steps to get a chain of (Z_0, Action, Z_1).
+                We truncate the sequence if the robot every moves outside a 1.2m radius from the origin to keep
+                it within the camera frame (turns out this happens almost every time). I call each of these sequences an
+                "Episode".
+            </p>
+
+            <p>
+                I ran the above methodology for 1000 episodes to get a total of 4159 transition triplets. I also record
+                videos
+                of the entire episode every 10 episodes. The total dataset size (including the videos) is 52gb.
+                Below are the recorded videos from the entire 360th episode. Note that the final frame of the
+                left hand video is the same as the first frame of the right hand video. And the right hand video clip
+                is the same as the next step's left hand video clip.
+            </p>
+
+            <p>
+                <video src="../assets/images/2026-03-17/training_video/transition_000_debug.mp4" controls
+                    class="post-video" style="width:512px;">
+                    Your browser does not support the video tag.
+                </video>
+                <video src="../assets/images/2026-03-17/training_video/transition_001_debug.mp4" controls
+                    class="post-video" style="width:512px;">
+                    Your browser does not support the video tag.
+                </video>
+                <video src="../assets/images/2026-03-17/training_video/transition_002_debug.mp4" controls
+                    class="post-video" style="width:512px;">
+                    Your browser does not support the video tag.
+                </video>
+                <video src="../assets/images/2026-03-17/training_video/transition_003_debug.mp4" controls
+                    class="post-video" style="width:512px;">
+                    Your browser does not support the video tag.
+                </video>
+                <video src="../assets/images/2026-03-17/training_video/transition_004_debug.mp4" controls
+                    class="post-video" style="width:512px;">
+                    Your browser does not support the video tag.
+                </video>
+            </p>
+
+            <p>
+                Once all the raw video data was collected, I ran the JEPA encoder on all the video buffers to arrive at
+                the
+                final training data set consisting of 4159 triplets (Z_0, Action, Z_1) in latent space. This final
+                dataset
+                is 35gb in total size.
+            </p>
+
+            <h4> Predictor Training </h4>
+
+            <p>
+
+            </p>
+
 
 
 

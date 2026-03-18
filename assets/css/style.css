@@ -153,3 +153,38 @@ table code {
     /* center in post */
     border-radius: 8px;
 }
+
+.post-video {
+    width: 100%;
+    max-width: 800px;
+    display: block;
+    margin: 1rem auto;
+    /* center in post */
+    border-radius: 8px;
+}
+
+.grid {
+    display: grid;
+    max-width: 800px;
+    margin: 0 auto;
+    grid-template-columns: repeat(3, 1fr);
+    /* 3 equal columns */
+    gap: 15px;
+    /* Space between items */
+}
+
+.grid img {
+    width: 100%;
+    /* Fills the column width */
+    aspect-ratio: 1 / 1;
+    /* Forces the square shape */
+    object-fit: cover;
+    /* Ensures image isn't squashed */
+    display: block;
+}
+
+figure {
+    margin: 0;
+    /* Removes default browser spacing */
+    text-align: center;
+}
