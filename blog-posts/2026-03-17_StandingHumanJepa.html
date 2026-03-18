@@ -27,20 +27,82 @@
             <p><em>March 17, 2026</em></p>
 
             <p>
-                After getting the hang of the PyBullet environment, I attempted the challenging task of training a
-                humanoid robot to stand using reinforcement learning techniques.
-                I shall document my journey in this blog post, and structure it similar to a research paper
-                for organization purposes.
-                I will focus on my "final" result -- it will take too long to
-                document everything I tried! I tuned all kinds of parameters and configurations over the past several
-                months --
-                Reinforcement learning is for sure a tedious and challenging beast!
-
-                I am utterly fascinated by this whole process of breathing life into a robot -- to see what it is able
-                to learn through (almost) random movements!
-
-
+                So I saw some videos on YouTube about Yann LeCun's JEPA architecture and wanted to use it
+                to train my humanoid to stand up. In summer 2025, Meta released a model, V-JEPA 2. I
+                used it to build a training and inference pipeline for the humanoid standing task.
+                Here are the results! I think this World-Model based approach is promising, and it
+                is certainly a more fundamentally intelligent approach than pure reinforcement learning.
+                However, I also believe we are in the very early stages of the development of this technology,
+                and it is not quite ready for use in complex dynamics control. But I am very excited for
+                what the future holds for the application of World Models to robotics.
             </p>
+
+            <h3>Summary</h3>
+            <p>
+                The idea of the JEPA (Joint-Embedding Predictive Architecture) is to predict missing or future frames of
+                a video in latent space.
+                So there is an encoder and a predictor.
+                Frames of a video are encoded by the model into a "latent space", then subsequent frames (or even the
+                same frames) are transformed
+                via corruption or deletion, and finally the predictor is trained to output the untransformed frames in
+                latent space.
+                So there is no "decoder". And the "predictor" is not really used at inference time -- it
+                exists to make learned latent representations sensible. So I had to train a custom predictor
+                to incorporate robot actions.
+
+                The model is trained in such a way that the latent representations have a notion of "distance" or
+                "energy". Closer
+                L1 distances of two states in the latent space indicate less "surprise". So smooth frame transitions
+                in a video should have low L1 distance, whereas physically impossible transitions should have high L1
+                distance.
+            </p>
+
+            <p>
+                To "connect" this V-JEPA "World Model" to my specific torque-action controlled humanoid, I had to
+                train a custom "Predictor". The predictor's job is to take a latent encoding together with an action
+                (in my case a size 28 vector of torques)
+                and predict the consequence of that action as a latent representation. Training the predictor required
+                curating a dataset of prior latents, actions, and posterior latents, and experimenting with
+                different architectures.
+            </p>
+
+            <p>
+                To use the predictor to find an ideal sequence of actions to stand, I used a monte carlo technique
+                known as "Cross-Entropy Method" (CEM), where we iteratively sample optimum actions by reducing the
+                search space based on top performing "elites". We start with the latent representation
+                of the lying down pose, and we attempt to reach the standing pose target.
+            </p>
+
+            <p>
+                In the final result, the humanoid failed to perform a successful stand in simulation, but there
+                appears to be sensible, intelligent movement in the right direction.
+            </p>
+
+
+            <h3> Methodology</h3>
+
+            <p>
+                The simulation setup and hardware is the exact same as the Reinforcement Learning Project, outlined
+                in my previous <a class="text" href="2026-02-26_StandingHumanRL.html"> blog post</a>.
+
+                As a reminder, all work is done on M1 Mac with 8gb ram, and simulation is running at 480Hz
+                (meaning each simulation step represents 1/480 seconds of simulated time).
+            </p>
+
+            <p>
+                For this project, I used facebook/vjepa2-vitl-fpc16-256-ssv2 as the latent representation encoder.
+                The HuggingFace link to the model can be found
+                <a class="text" href="https://huggingface.co/facebook/vjepa2-vitl-fpc16-256-ssv2">
+                    here
+                </a>.
+            </p>
+
+            <h4> Initial Sanity Check </h4>
+            <p>
+                Before embarking on this complicated project, I wanted to check to make sure that there is indeed a
+                sensible metric in the latent space.
+            </p>
+
 
 
 
