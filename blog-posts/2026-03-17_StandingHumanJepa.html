@@ -24,18 +24,14 @@
         <article class="blog-post">
             <h2>World Model Action Control:
                 Training a Humanoid to Stand in PyBullet Using V-JEPA 2</h2>
-            <p><em>March 17, 2026</em></p>
+            <p><em>March 18, 2026</em></p>
 
             <p>
-                So I saw some videos on YouTube about Yann LeCun's JEPA architecture and wanted to use it
-                to train my humanoid to stand up. In summer 2025, Meta released a model, V-JEPA 2. I
-                used it to build a training and inference pipeline for the humanoid standing task.
-                Here are the results! I think this World-Model based approach is promising, and it
-                is certainly a more fundamentally intelligent approach than pure reinforcement learning.
-                However, I also believe we are in the very early stages of the development of this technology,
-                and it is not quite ready for use in complex dynamics control. But I am very excited for
-                what the future holds for the application of World Models to robotics.
+                In summer 2025, Meta released a Video World Model, V-JEPA 2.
+                Recently, I used it to build a training and inference pipeline for the humanoid standing task.
             </p>
+
+            <p> Here are the results!</p>
 
             <h3>Summary</h3>
             <p>
@@ -47,19 +43,20 @@
                 via corruption or deletion, and finally the predictor is trained to predict the untransformed frames in
                 latent space.
                 So there is no "decoder". And the "predictor" is not really used at inference time -- it
-                exists to make learned latent representations sensible. So I had to train a custom predictor
-                to incorporate robot actions.
+                exists to make learned latent representations sensible. So one would typically need
+                to train a custom predictor for the specific use-case.
 
                 The model is trained in such a way that the latent representations have a notion of "distance" or
-                "energy". Closer
-                L1 distances of two states in the latent space indicate less "surprise". So smooth frame transitions
+                "energy".
+                Closer L1 distances of two states indicate less "surprise". So smooth frame transitions
                 in a video should have low L1 distance, whereas physically impossible transitions should have high L1
                 distance.
             </p>
 
             <p>
-                To "connect" this V-JEPA "World Model" to my specific torque-action controlled humanoid, I had to
-                train a custom "Predictor". The predictor's job is to take a latent encoding together with an action
+                To connect the V-JEPA Model to my torque-action controlled humanoid, I
+                trained a predictor from scratch. The predictor's job is to take a latent encoding together with an
+                action
                 (in my case a size 28 vector of torques)
                 and predict the consequence of that action as a latent representation. Training the predictor required
                 curating a dataset of prior latents, actions, and posterior latents, and experimenting with
@@ -82,25 +79,24 @@
             <h3> Methodology</h3>
 
             <p>
-                The simulation setup and hardware is the exact same as the Reinforcement Learning Project, outlined
-                in my previous <a class="text" href="2026-02-26_StandingHumanRL.html"> blog post</a>.
+                The simulation setup and hardware is the same as the RL-Standing Project, outlined
+                in my previous <a class="text" href="2026-02-26_StandingHumanRL.html" target="_blank"> blog post</a>.
 
-                As a reminder, all work is done on M1 Mac with 8gb ram ("MPS" as the "gpu"/"device"), and simulation is
+                All work is done on an M1 Mac with 8gb RAM ("MPS" as the "gpu"/"device"), and simulation is
                 running at
-                480Hz
-                (meaning each simulation step represents 1/480 seconds of simulated time).
+                480Hz.
             </p>
 
             <p>
-                Another thing worth mentioning is that to extract videos from PyBullet, I had to configure a camera
-                module and set the renderer to "p.ER_BULLET_HARDWARE_OPENGL" in order to capture color, shadows, and
-                texture. But this only worked when the engine is connected to the GUI. To save
+                To extract videos from PyBullet, I configured a camera
+                module and set the renderer to "p.ER_BULLET_HARDWARE_OPENGL" to capture color, lighting, and shadows.
+                But this only works when the engine is connected to the GUI. To save
                 compute and not render every single step, I call "p.configureDebugVisualizer(p.COV_ENABLE_RENDERING,
                 0)" (important in the data collection phase).
             </p>
 
             <p>
-                For this project, I used facebook/vjepa2-vitl-fpc16-256-ssv2 as the latent representation encoder.
+                For this project, I used "facebook/vjepa2-vitl-fpc16-256-ssv2" as the latent representation encoder.
                 The HuggingFace link to the model can be found
                 <a class="text" href="https://huggingface.co/facebook/vjepa2-vitl-fpc16-256-ssv2">
                     here
@@ -111,9 +107,9 @@
 
             <h4> Initial Sanity Check </h4>
             <p>
-                Before embarking on this challenging project, I wanted to check to make sure that there is indeed a
-                sensible metric in the latent space. Do poses closer to the standing pose actually
-                have a lower L1 distance to it?
+                Before proceeding further, I wanted to ensure that there is indeed a
+                sensible metric in latent space. Do poses more similar to the standing pose actually
+                have a lower L1?
             </p>
 
             <p>
@@ -152,7 +148,7 @@
 
             <p>
                 For the most part, poses closer to the desired stand pose indeed do have lower L1 distance!
-                However, the one problematic case is the scene with no robot at all, which scored higher
+                However, the one problematic case is the scene with no robot at all, which had lower L1
                 than everything except the athletic low stand!
                 This is an interesting case, but I decided to press on, as I was satisfied with the ordering of the
                 other poses.
@@ -162,13 +158,13 @@
                 Data Collection for Predictor
             </h4>
             <p>
-                Training data needed to be collected for the action-aware predictor.
+                Training data needed to be collected to train the action-aware predictor.
             </p>
 
             <p>
-                We represent each state as a video recording the application of a single action vector
+                We represent each state as a video recording of the application of a single action vector
                 for 160 physics simulation steps. We capture images every 10 steps for a total of 16 frames.
-                Since the simulator runs at 480Hz, this represents a 3Hz or 3FPS video. Each "sample" of data
+                Since the simulator runs at 480Hz, this represents a 3Hz action-step. Each "sample" of data
                 consists of a triplet (Z_0, Action, Z_1), where Z_0 is the prior state, the Action is the
                 action we intend to apply, and Z_1 is the resulting state. The goal is to train a predictor
                 to predict Z_1 given Z_0 and Action.
@@ -182,14 +178,14 @@
                 action
                 to
                 get Z_1. We then iterate for a maximum of 10 such steps to get a chain of (Z_0, Action, Z_1).
-                We truncate the sequence if the robot every moves outside a 1.2m radius from the origin to keep
+                We truncate the process if the robot every moves outside a 1.2m radius from the origin to keep
                 it within the camera frame (turns out this happens almost every time). I call each of these sequences an
                 "Episode".
             </p>
 
             <p>
-                I ran the above methodology for 1000 episodes to get a total of 4159 transition triplets. I also record
-                videos
+                I ran the above methodology for 1000 episodes to get a total of 4159 transition triplets. I also
+                recorded videos
                 of the entire episode every 10 episodes. The total dataset size (including the videos) is 52gb.
                 Below are the recorded videos from the entire 360th episode. Note that the final frame of the
                 left hand video is the same as the first frame of the right hand video. And the right hand video clip
@@ -230,7 +226,7 @@
             <h4> Predictor Training </h4>
 
             <p>
-                The predictor model's input is Z_0 and Action, and it is trained to output Z_1. As a reminder, the
+                The predictor model's inputs are Z_0 and Action, and it is trained to output Z_1. The
                 latent states (Z_0, Z_1)
                 have dimension (2048, 1024), representing 2048 "tokens" of size 1024. The action is a vector of size 28.
             </p>
@@ -255,30 +251,33 @@
             <p>
                 The loss function is a custom L1 function that hones in on the tokens that change the most.
                 We first take the difference of Z_0 and Z_1 (actual), then take the average across the token dimension.
-                This gets as 2048 numbers
+                This results in 2048 numbers
                 representing the average change of each token. We multiply by 50 and add 1 to get a "diff mask".
                 Then we take the raw L1 of the predicted Z_1 and actual Z_1, multiply by this diff mask and take the
                 mean. So effectively, we have a weighted L1 loss that penalizes error in tokens more when the token
-                actually changes significantly from the prior state. We use cosine annealing for the learning rate.
+                actually changes significantly from the prior state.
             </p>
+
 
             <p>
                 The scaling parameter was initialized at 0.1. So effectively, in the beginning of training, the model
-                would tend to predict the Z_1 = Z_0, but the scaling factor would rise as the model became more
+                would tend to predict Z_1_pred = Z_0, but the scaling factor would rise as the model became more
                 "confident" in the output of the transformer.
             </p>
 
             <p>
                 I thought this was a clever training trick, but I am actually dubious that it resulted in a more
                 effective
-                training result (lol). It seems just using the standard L1 loss function resulted in more or less the
-                same final result. But I think the training trajectory of this technique is better, and it results in a
-                model
-                that better understands the change from one state to another.
+                training result. It seems just using the standard L1 loss function and no delta scaling factor
+                resulted in more or less the
+                same final result. But I think the training trajectory of this technique is better -- with the loss
+                starting high and lowering progressively over time.
             </p>
 
+            <p> We use cosine annealing for the learning rate.</p>
+
             <p>
-                Below is the model summary.
+                Below is the model summary outputted by PyTorch.
             </p>
 
             <table border="1">
@@ -426,9 +425,9 @@
 
             <p>
                 Total training time was ~30 hours on my MacBook.
-                I also probably should have held out a validation set. But wanted to make full use of my data and I
-                doubt my model is over-fitting due to
-                small number of parameters.
+                I should have held out a validation set, but I wanted to make full use of my data, and I
+                doubt my model is over-fitting because it has
+                a relatively small number of parameters.
             </p>
 
             <h4>
@@ -437,29 +436,27 @@
             <p>
                 To determine the ideal sequence of actions, we use a monte-carlo method.
             </p>
+
             <p>
-                So we allow for 6 total actions. Recall that each action takes 160 physics steps, and there's 480 steps
-                per second. So each action
-                represents 1/3 of a second,
-                and 6 actions represents 2 seconds or real world time.
-            </p>
-            <p>
-                For each of the 6 steps, we iterate 5 times, each time narrowing the search space.
+                We allow for 6 total actions. For each of the 6 steps, we iterate 5 times, each time narrowing the
+                search space.
                 We start by sampling 1000 actions from Uniform(-1, 1).
-                For all the actions, we take the current latent state Z_0 (initialized as the lying down pose), and
-                calculate Z_1_pred = Model(Z_0, Action).
-                We take Energy_Diff = L1(Z_1_pred, GOAL_Latent), and select the 150 elite Actions with smallest
+                We then calculate Z_1_pred = Model(Z_0, Action) and Energy_Diff = L1(Z_1_pred, Goal_Latent), and select
+                the 150 elite actions with smallest
                 Energy_Diff. We take Mean and Std Dev of these elites.
-                We sample 1000 new actions from Normal(Action_Mean, Action Std Dev),
+                We sample 1000 new actions from Normal(Elite_Action_Mean, Elite_Action_Std_Dev),
                 and run it through the model to select the next batch of elites.
                 After 5 iterations, the final Action Mean is our chosen "best action" for that step.
 
                 We run Z_1_next = Model(Z_0, Chosen Action) to predict the next latent state, and Z_1_next
                 becomes Z_0 in the next step.
             </p>
+
+            <p> The first Z_0 is initialized as the lying down pose's latent.</p>
+
             <p>
                 For each of the 6 steps, the goal latents are Knee Tuck, Low Stand, then Standing for the remaining 4.
-                (See the Pose Studio discussion above). So I gave it a simple "trajectory".
+                (See the Pose Studio discussion above). In other words, there is a simple "trajectory".
             </p>
 
             <p>
@@ -478,8 +475,7 @@
             </video>
 
             <p>
-                Trial 7 seemed to have the most successful attempt. The results are not super great,
-                and I'm not sure if the movements are random or intelligent.
+                Trial 7 seemed to have the most successful attempt.
                 But more on this in the discussion!
             </p>
 
@@ -498,47 +494,75 @@
             <p>
                 I think the results are OK (but not great). I still feel optimistic about this approach when compared
                 to alternatives such as model-free reinforcement learning (like my previous blog post).
-                There are things that I needed to iterate on, especially regarding the CEM and the predictor training,
-                but the number of things to tweak in the PPO approach was vastly more. There
-                are infinite things you can add to your reward function, and infinite regularizer and penalties to
-                experiment with.
-                With the world model approach, at least you are starting with a pair of eyes that somewhat understand
-                the
-                world. And the planning seems to be a bit more deterministic than purely random actions of RL.
-
-                Initially, I wanted to keep the RL-PPO approach but use the JEPA distance as the reward function,
-                but this proved
-                to be way too slow, and prevented me from running the millions of steps necessary. So I pivoted to the
-                predictor training + CEM approach, which I believe
-                is the
-                intended way to use V-JEPA.
             </p>
 
             <p>
-                I think the main issue I had was with the lack of discerning power of the predictor. In the final
+                In the PPO approach, there are infinite configurations to tweak, especially in the reward function,
+                and it is not intuitive which rewards will work and which will fail. And the chances of
+                random movements satisfying the intended rewards are quite low.
+            </p>
+
+            <p>
+                In the World Model approach, the main variable is the predictor.
+                Its related dataset, architecture, and training loop need to be refined. But if the encoder
+                is good, ideally this is just a matter of collecting good data, and then
+                throwing compute at the predictor training. Both of these are problems that can be solved in a
+                non-random way.
+                Then, the CEM action planner can select optimal actions in a smart way that doesn't require millions of
+                steps. Of course, the specific algorithm needs to be refined.
+
+                I like that these World Models inject a high level understanding
+                of motion and physics to the problem of control.
+            </p>
+
+            <p>
+                Since this notion of L1 Energy is quite fuzzy, it can be difficult to predict which states
+                have low L1 distance. One blatant example (mentioned above) is
+                the no-robot scene with low L1 distance to standing pose. This would incentivize the robot
+                to flail out of view rather than stand. Furthermore,
+                while it makes sense to work in latent space to prevent pixel-level noise,
+                it is difficult to understand what the latent
+                representations mean. Interpretability is a big issue.
+                I would be interested to learn more about techniques to visualize or understand the latent space.
+            </p>
+
+            <p>
+                Training a competent predictor is also a non-trivial task.
+
+                One of the the main issues
+                I had was with the lack of discerning power of the predictor.
+
+                In the final
                 trained model, I only had ~25%
                 improvement over predicting an unchanged latent state. I believe my model was too small, but it was
                 already
-                pushing the limits of my laptop. This just goes to show you need lots of compute to train a transformer
-                based model.
+                pushing the limits of my laptop. This shows transformer-based models require lots of compute.
             </p>
 
             <p>
-                The other issue was that the training data consists of actions sampled from a uniform distribution. I
-                think this is too "sparse" in some sense, and I should have sampled from a normal distribution.
+                Having good training data that covers the possible space of states and actions
+                is also a challenge. I sampled from a uniform distribution. Looking back, this may have been too
+                "sparse",
+                and I should have also sampled some data from a normal
+                distribution.
                 Furthermore,
-                I think it would be good to deliberately "zero-out" some or all of the actions so that we have isolated
-                joint-actions in the training set. That might give the predictor a better idea of how each joint affects
-                the change in latent space. I actually wrote a module to augment the training data in this fashion,
-                but I ran out of disk space (lol).
+                I think it would be good to deliberately "zero-out" some or all of the actions so that we isolate
+                certain joint-actions.
+                That might give the
+                predictor a better idea of how momentum, gravity, and specific joints affect the latent state.
+                I actually wrote a module to augment the training data in this fashion,
+                but unfortunately I ran out of disk space.
             </p>
 
             <p>
-                I think the last issue was the single camera perspective. I think you might get better results if you
+                Another issue was the single camera perspective. I think you might get better results if you
                 incorporate
-                multiple camera views to get a better idea of what the robot is doing. But this would require
+                multiple camera views to triangulate on the true robot state and actions.
+                This would require
                 altering the training data and inference pipe significantly.
             </p>
+
+
 
             <h3>Conclusion</h3>
             <p>
@@ -550,13 +574,16 @@
 
             <p>
                 But I like the idea of the "energy" based system, and I think this technology has tremendous potential.
-                It's
-                almost like using deep learning to develop some notion of "common sense" about the world.
+                It's essentially using deep learning to develop some notion of "common sense" about the world.
+                And you limit the feasible actions or optimize the actions by minimizing the energy,
+                which at some level is what intelligent organisms do. World Models allow for such progress in a more
+                "concerted" or "less random" way than pure RL.
+
             </p>
             <p>
                 Gathering data and training the Predictor are highly challenging tasks.
                 Perhaps if there were some way to get an "out of the box" predictor that merely needs to be adapted
-                to specific action-domains (like transfer learning), much more mileage can be obtained
+                to specific action-domains (eg. transfer learning), much more mileage can be obtained
                 from these Video World Models.
             </p>
 
